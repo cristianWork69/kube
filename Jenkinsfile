@@ -8,8 +8,17 @@ pipeline {
                 image: 'docker:20.10.24-dind',
                 ttyEnabled: true,
                 command: 'cat',
-                privileged: true
+                privileged: true,  // Questo è fondamentale per Docker-in-Docker
+                volumeMounts: [
+                    // Monta il socket Docker del nodo nella directory appropriata nel contenitore
+                    [mountPath: "/var/run/docker.sock", name: "docker-socket"]
+                ]
             )
+            volumes {
+                emptyDir {
+                    name: 'docker-socket'
+                }
+            }
         }
     }
 
