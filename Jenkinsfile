@@ -1,5 +1,17 @@
 pipeline {
-    agent none
+    agent {
+        kubernetes {
+            label 'docker-agent'
+            defaultContainer 'docker'
+            containerTemplate(
+                name: 'docker',
+                image: 'docker:20.10.24-dind',
+                ttyEnabled: true,
+                command: 'cat',
+                privileged: true
+            )
+        }
+    }
 
     environment {
         IMAGE_TAG = "${env.BRANCH_NAME}"
@@ -9,30 +21,12 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            agent { kubernetes { label 'docker-agent' } }
             steps {
                 checkout scm
             }
         }
 
         stage('Build & Push') {
-            agent { 
-                kubernetes {
-                    label 'docker-agent'
-                    defaultContainer 'docker'
-                    podTemplate(
-                        containers: [
-                            containerTemplate(
-                                name: 'docker',
-                                image: 'docker:20.10.24-dind',
-                                ttyEnabled: true,
-                                command: 'cat',
-                                privileged: true
-                            )
-                        ]
-                    )
-                }
-            }
             steps {
                 container('docker') {
                     script {
@@ -48,7 +42,6 @@ pipeline {
         }
 
         stage('Deploy Green') {
-            agent { kubernetes { label 'docker-agent' } }
             steps {
                 container('docker') {
                     script {
@@ -63,7 +56,6 @@ pipeline {
         }
 
         stage('Wait Pods') {
-            agent { kubernetes { label 'docker-agent' } }
             steps {
                 container('docker') {
                     sh "kubectl rollout status deployment/myapp-green"
@@ -72,7 +64,6 @@ pipeline {
         }
 
         stage('Test App') {
-            agent { kubernetes { label 'docker-agent' } }
             steps {
                 script {
                     def ip = sh(script: "kubectl get svc myapp-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'", returnStdout: true).trim()
@@ -85,7 +76,6 @@ pipeline {
         }
 
         stage('Cleanup') {
-            agent { kubernetes { label 'docker-agent' } }
             steps {
                 container('docker') {
                     sh "kubectl delete deployment myapp-blue --ignore-not-found"
