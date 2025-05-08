@@ -1,26 +1,28 @@
 pipeline {
-  agent {
+ agent {
     kubernetes {
       yaml """
 apiVersion: v1
 kind: Pod
 spec:
   containers:
-    - name: gcloud
-      image: gcr.io/cloud-builders/docker
-      command: ["cat"]
-      tty: true
-      volumeMounts:
-        - name: docker-sock
-          mountPath: /var/run/docker.sock
-  volumes:
+  - name: gcloud
+    image: gcr.io/google.com/cloudsdktool/cloud-sdk:latest
+    command:
+    - cat
+    tty: true
+    volumeMounts:
     - name: docker-sock
-      hostPath:
-        path: /var/run/docker.sock
+      mountPath: /var/run/docker.sock
+  volumes:
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
 """
-      defaultContainer 'gcloud'
+    defaultContainer 'gcloud'
     }
   }
+
 
   environment {
     IMAGE_TAG = "${env.BRANCH_NAME}"
@@ -38,14 +40,13 @@ spec:
     stage('Auth & Docker Build') {
       steps {
         withCredentials([file(credentialsId: 'gcp-sa-json', variable: 'GCLOUD_KEY')]) {
-          sh '''
-            apt-get update && apt-get install -y kubectl
-            gcloud auth activate-service-account --key-file=$GCLOUD_KEY
-            gcloud config set project $PROJECT_ID
-            gcloud auth configure-docker europe-west3-docker.pkg.dev
-            docker build -t europe-west3-docker.pkg.dev/$PROJECT_ID/my-docker-repo/myapp:$IMAGE_TAG .
-            docker push europe-west3-docker.pkg.dev/$PROJECT_ID/my-docker-repo/myapp:$IMAGE_TAG
-          '''
+          sh """
+          gcloud auth activate-service-account --key-file=$GCLOUD_KEY
+          gcloud config set project $PROJECT_ID
+          gcloud auth configure-docker us-docker.pkg.dev
+          docker build -t europe-west3-docker.pkg.dev/$PROJECT_ID/my-docker-repo/myapp:$IMAGE_TAG .
+          docker push europe-west3-docker.pkg.dev/$PROJECT_ID/my-docker-repo/myapp:$IMAGE_TAG
+          """
         }
       }
     }
@@ -53,8 +54,8 @@ spec:
     stage('Deploy Green') {
       steps {
         sh """
-          sed 's|<tag>|$IMAGE_TAG|g' deployment-green.yaml | kubectl apply -f -
-          kubectl apply -f service.yaml
+        sed 's|<tag>|$IMAGE_TAG|g' deployment-green.yaml | kubectl apply -f -
+        kubectl apply -f service.yaml
         """
       }
     }
