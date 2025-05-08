@@ -1,30 +1,9 @@
 pipeline {
-  agent {
-    kubernetes {
-      yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: gcloud
-    image: google/cloud-sdk:slim
-    command:
-    - cat
-    tty: true
-    volumeMounts:
-    - name: docker-sock
-      mountPath: /var/run/docker.sock
-  volumes:
-  - name: docker-sock
-    hostPath:
-      path: /var/run/docker.sock
-"""
-    defaultContainer 'gcloud'
-    }
-  }
+  agent any
 
   environment {
     IMAGE_TAG = "${env.BRANCH_NAME}"
+    COLOR = "green"
     PROJECT_ID = "sport-tournament-655af"
   }
 
@@ -35,27 +14,26 @@ spec:
       }
     }
 
-    stage('Build & Push') {
+    stage('Auth & Docker Build') {
       steps {
         withCredentials([file(credentialsId: 'gcp-sa-json', variable: 'GCLOUD_KEY')]) {
-          sh '''
+          sh """
           gcloud auth activate-service-account --key-file=$GCLOUD_KEY
           gcloud config set project $PROJECT_ID
           gcloud auth configure-docker us-docker.pkg.dev
-          docker build -t europe-docker.pkg.dev/$PROJECT_ID/my-docker-repo/myapp:$IMAGE_TAG .
-	  docker push europe-docker.pkg.dev/$PROJECT_ID/my-docker-repo/myapp:$IMAGE_TAG
-
-          '''
+          docker build -t europe-west3-docker.pkg.dev/$PROJECT_ID/my-docker-repo/myapp:$IMAGE_TAG .
+          docker push europe-west3-docker.pkg.dev/$PROJECT_ID/my-docker-repo/myapp:$IMAGE_TAG
+          """
         }
       }
     }
 
     stage('Deploy Green') {
       steps {
-        sh '''
+        sh """
         sed 's|<tag>|$IMAGE_TAG|g' deployment-green.yaml | kubectl apply -f -
         kubectl apply -f service.yaml
-        '''
+        """
       }
     }
 
