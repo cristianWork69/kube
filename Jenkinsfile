@@ -43,7 +43,7 @@ spec:
           sh """
           gcloud auth activate-service-account --key-file=$GCLOUD_KEY
           gcloud config set project $PROJECT_ID
-          gcloud auth configure-docker us-docker.pkg.dev
+          gcloud auth configure-docker europe-west3-docker.pkg.dev
           docker build -t europe-west3-docker.pkg.dev/$PROJECT_ID/my-docker-repo/myapp:$IMAGE_TAG .
           docker push europe-west3-docker.pkg.dev/$PROJECT_ID/my-docker-repo/myapp:$IMAGE_TAG
           """
