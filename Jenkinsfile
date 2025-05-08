@@ -20,15 +20,17 @@ pipeline {
                 kubernetes {
                     label 'docker-agent'
                     defaultContainer 'docker'
-                    containers {
-                        containerTemplate(
-                            name: 'docker',
-                            image: 'docker:20.10.24-dind',
-                            ttyEnabled: true,
-                            command: 'cat',
-                            privileged: true
-                        )
-                    }
+                    podTemplate(
+                        containers: [
+                            containerTemplate(
+                                name: 'docker',
+                                image: 'docker:20.10.24-dind',
+                                ttyEnabled: true,
+                                command: 'cat',
+                                privileged: true
+                            )
+                        ]
+                    )
                 }
             }
             steps {
