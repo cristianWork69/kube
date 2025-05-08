@@ -7,7 +7,7 @@ kind: Pod
 spec:
   containers:
     - name: gcloud
-      image: google/cloud-sdk:slim
+      image: gcr.io/cloud-builders/docker
       command: ["cat"]
       tty: true
       volumeMounts:
@@ -39,6 +39,7 @@ spec:
       steps {
         withCredentials([file(credentialsId: 'gcp-sa-json', variable: 'GCLOUD_KEY')]) {
           sh '''
+            apt-get update && apt-get install -y kubectl
             gcloud auth activate-service-account --key-file=$GCLOUD_KEY
             gcloud config set project $PROJECT_ID
             gcloud auth configure-docker europe-west3-docker.pkg.dev
