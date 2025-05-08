@@ -1,5 +1,10 @@
 pipeline {
-  agent any
+  agent {
+    docker {
+      image 'google/cloud-sdk:slim'  // contiene già gcloud + kubectl
+      args '-v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
 
   environment {
     IMAGE_TAG = "${env.BRANCH_NAME}"
@@ -17,23 +22,23 @@ pipeline {
     stage('Auth & Docker Build') {
       steps {
         withCredentials([file(credentialsId: 'gcp-sa-json', variable: 'GCLOUD_KEY')]) {
-          sh """
+          sh '''
           gcloud auth activate-service-account --key-file=$GCLOUD_KEY
           gcloud config set project $PROJECT_ID
           gcloud auth configure-docker
           docker build -t gcr.io/$PROJECT_ID/myapp:$IMAGE_TAG .
           docker push gcr.io/$PROJECT_ID/myapp:$IMAGE_TAG
-          """
+          '''
         }
       }
     }
 
     stage('Deploy Green') {
       steps {
-        sh """
+        sh '''
         sed 's|<tag>|$IMAGE_TAG|g' deployment-green.yaml | kubectl apply -f -
         kubectl apply -f service.yaml
-        """
+        '''
       }
     }
 
