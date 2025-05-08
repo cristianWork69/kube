@@ -1,14 +1,30 @@
 pipeline {
   agent {
-    docker {
-      image 'google/cloud-sdk:slim'  // contiene già gcloud + kubectl
-      args '-v /var/run/docker.sock:/var/run/docker.sock'
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: gcloud
+    image: google/cloud-sdk:slim
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: docker-sock
+      mountPath: /var/run/docker.sock
+  volumes:
+  - name: docker-sock
+    hostPath:
+      path: /var/run/docker.sock
+"""
+    defaultContainer 'gcloud'
     }
   }
 
   environment {
     IMAGE_TAG = "${env.BRANCH_NAME}"
-    COLOR = "green"
     PROJECT_ID = "sport-tournament-655af"
   }
 
@@ -19,7 +35,7 @@ pipeline {
       }
     }
 
-    stage('Auth & Docker Build') {
+    stage('Build & Push') {
       steps {
         withCredentials([file(credentialsId: 'gcp-sa-json', variable: 'GCLOUD_KEY')]) {
           sh '''
