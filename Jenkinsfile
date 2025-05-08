@@ -13,8 +13,10 @@ pipeline {
                     [mountPath: "/var/run/docker.sock", name: "docker-socket"]
                 ]
             )
-            workspaceVolume {
-                emptyDir {}
+            volumes {
+                workspaceVolume {
+                    emptyDir {}
+                }
             }
         }
     }
@@ -51,7 +53,7 @@ pipeline {
             steps {
                 container('docker') {
                     script {
-                        // Applicazione del deployment per la versione verde
+                        // Deploy application with the green version
                         sh """
                         sed 's|<tag>|$IMAGE_TAG|g' deployment-green.yaml | kubectl apply -f -
                         kubectl apply -f service.yaml
