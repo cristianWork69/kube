@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: myapp-green
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: myapp
@@ -15,7 +15,7 @@ spec:
         version: green
     spec:
       containers:
-      - name: myapp
-        image: gcr.io/<project-id>/myapp:<tag>
-        ports:
-        - containerPort: 5000
+        - name: myapp
+          image: europe-west3-docker.pkg.dev/sport-tournament-655af/my-docker-repo/myapp:${IMAGE_TAG}
+          ports:
+            - containerPort: 8080
